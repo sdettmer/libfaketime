@@ -623,7 +623,7 @@ static void next_time(struct timespec *tp, struct timespec *ticklen)
  *      =======================================================================
  */
 
-static void save_time(struct timespec *tp)
+static void save_time(const struct timespec *tp)
 {
   if ((shared_sem != NULL) && (outfile != -1))
   {
@@ -3407,6 +3407,18 @@ int clock_settime(clockid_t clk_id, const struct timespec *tp) {
 
   setenv("FAKETIME", newenv_string, 1);
   force_cache_expiration = 1; /* make sure it becomes effective immediately */
+
+  {
+    FILE *envfile;
+    static char custom_filename[BUFSIZ];
+    (void) snprintf(custom_filename, BUFSIZ, "%s", getenv("FAKETIME_TIMESTAMP_FILE"));
+
+    if ((envfile = fopen(custom_filename, "wt")) != NULL)
+    {
+      fprintf(envfile, "%+f", offset); // TODO make atomic + add error handling
+      fclose(envfile);
+    }
+  }
 
   return 0;
 }
