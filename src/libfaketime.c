@@ -3408,14 +3408,19 @@ int clock_settime(clockid_t clk_id, const struct timespec *tp) {
   setenv("FAKETIME", newenv_string, 1);
   force_cache_expiration = 1; /* make sure it becomes effective immediately */
 
+  /* If FAKETIME_TIMESTAMP_FILE was given in environment, update it.
+   * This allows other process instances to share the same time. */
+  if (    (getenv("FAKETIME_TIMESTAMP_FILE") != NULL)
+       && (*getenv("FAKETIME_TIMESTAMP_FILE") != '\0') )
   {
     FILE *envfile;
     static char custom_filename[BUFSIZ];
     (void) snprintf(custom_filename, BUFSIZ, "%s", getenv("FAKETIME_TIMESTAMP_FILE"));
 
+    // TODO how to handle errors?
     if ((envfile = fopen(custom_filename, "wt")) != NULL)
     {
-      fprintf(envfile, "%+f", offset); // TODO make atomic + add error handling
+      fprintf(envfile, "%+f", offset);
       fclose(envfile);
     }
   }
