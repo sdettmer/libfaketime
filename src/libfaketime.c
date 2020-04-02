@@ -3413,6 +3413,7 @@ int clock_settime(clockid_t clk_id, const struct timespec *tp) {
   if (    (getenv("FAKETIME_TIMESTAMP_FILE") != NULL)
        && (*getenv("FAKETIME_TIMESTAMP_FILE") != '\0') )
   {
+    const char *error = NULL;
     FILE *envfile;
     static char custom_filename[BUFSIZ];
     (void) snprintf(custom_filename, BUFSIZ, "%s", getenv("FAKETIME_TIMESTAMP_FILE"));
@@ -3420,8 +3421,24 @@ int clock_settime(clockid_t clk_id, const struct timespec *tp) {
     // TODO how to handle errors?
     if ((envfile = fopen(custom_filename, "wt")) != NULL)
     {
-      fprintf(envfile, "%+f", offset);
-      fclose(envfile);
+      if (fprintf(envfile, "%+f", offset) < 0)
+      {
+        error = "to write to file";
+      }
+      if (fclose(envfile) != 0)
+      {
+        error = "to close file";
+      }
+    }
+    else
+    {
+      error = "to open file";
+    }
+    if (error)
+    {
+      fprintf(stderr, "libfaketime: In clock_settime(), failed to "
+        "%s while updating FAKETIME_TIMESTAMP_FILE (`%s'): %s\n",
+        error, getenv("FAKETIME_TIMESTAMP_FILE"), strerror(errno));
     }
   }
 
